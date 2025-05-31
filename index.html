@@ -8,23 +8,57 @@
       font-family: Arial, sans-serif;
       text-align: center;
       padding: 30px;
+      background-color: #f0f0f0;
     }
-    button {
+
+    h1 {
+      color: #333;
+    }
+
+    .boton {
       font-size: 20px;
+      padding: 12px 32px;
       margin: 10px;
-      padding: 10px 30px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      color: white;
     }
-    .estado {
+
+    .encender {
+      background-color: #28a745;
+    }
+
+    .apagar {
+      background-color: #dc3545;
+    }
+
+    .encender:disabled,
+    .apagar:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    #estadoLed {
       font-size: 24px;
-      margin-top: 20px;
+      margin-top: 30px;
+    }
+
+    #cargando {
+      font-size: 18px;
+      color: #666;
+      display: none;
     }
   </style>
 </head>
 <body>
-  <h1>Controlar LED ESP32</h1>
-  <button onclick="actualizarLed(1)">Encender</button>
-  <button onclick="actualizarLed(0)">Apagar</button>
-  <div class="estado" id="estadoLed">Estado: Desconocido</div>
+  <h1>Controlar LED del ESP32</h1>
+
+  <button class="boton encender" onclick="actualizarLed(1)">Encender</button>
+  <button class="boton apagar" onclick="actualizarLed(0)">Apagar</button>
+
+  <div id="cargando">⏳ Esperando respuesta...</div>
+  <div id="estadoLed">Estado: Desconocido</div>
 
   <script>
     const WRITE_API_KEY = "PF4OJMV9TVJWSTOZ";
@@ -32,11 +66,13 @@
     const READ_API_KEY = "24DWHWZEL6XS8M5V";
 
     function actualizarLed(valor) {
+      document.getElementById("cargando").style.display = "block";
+
       fetch(`https://api.thingspeak.com/update?api_key=${WRITE_API_KEY}&field1=${valor}`)
         .then(response => response.text())
         .then(data => {
-          console.log("Respuesta de ThingSpeak:", data);
-          setTimeout(verEstado, 1000);
+          console.log("Respuesta:", data);
+          setTimeout(verEstado, 1500); // Esperamos un poco antes de actualizar
         });
     }
 
@@ -44,13 +80,21 @@
       fetch(`https://api.thingspeak.com/channels/${CHANNEL_ID}/fields/1/last.txt?api_key=${READ_API_KEY}`)
         .then(response => response.text())
         .then(valor => {
-          const estado = parseInt(valor.trim()) === 1 ? "Encendido 🔆" : "Apagado 🌑";
-          document.getElementById("estadoLed").innerText = "Estado: " + estado;
+          document.getElementById("cargando").style.display = "none";
+
+          const estado = parseInt(valor.trim());
+          const estadoTexto = estado === 1 ? "Encendido 🔆" : "Apagado 🌑";
+          document.getElementById("estadoLed").innerText = "Estado: " + estadoTexto;
+
+          // Opcional: deshabilita el botón activo
+          document.querySelector(".encender").disabled = estado === 1;
+          document.querySelector(".apagar").disabled = estado === 0;
         });
     }
 
+    // Ver estado cada 5 segundos
     setInterval(verEstado, 5000);
-    verEstado(); // Cargar estado al abrir
+    verEstado();
   </script>
 </body>
 </html>
